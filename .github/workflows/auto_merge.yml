@@ -1,0 +1,30 @@
+name: Auto Sync Upstream
+on:
+  workflow_dispatch:  # 允许手动触发
+  schedule:
+    - cron: "0 8 * * fri"  # UTC时间每周五8点执行（北京时间16点）
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: main  # 指定分支
+          fetch-depth: 0  # 拉取完整提交历史
+      - name: 配置 Git 身份
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "github-actions[bot]"
+      - name: 同步上游仓库
+        run: |
+          git remote add upstream https://github.com/ZHO-ZHO-ZHO/ComfyUI-Workflows-ZHO.git
+          git pull upstream main --no-rebase --no-commit  # 拉取并合并
+          git update-index --assume-unchanged ./config.json  # 忽略本地配置文件
+      - name: 处理冲突并提交
+        if: success()
+        run: |
+          git add .
+          git commit -m "[Bot] AutoMerge: Sync upstream changes"
+      - name: 推送更新
+        run: git push origin main
